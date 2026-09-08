@@ -1,0 +1,42 @@
+server:
+  port: ${SERVER_PORT:8082}
+
+spring:
+  application:
+    name: repository-analysis-agent
+  ai:
+    model:
+      chat: openai
+    openai:
+      api-key: ${AI_API_KEY}
+      base-url: ${AI_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode}
+      timeout: 30s
+      chat:
+        options:
+          model: ${AI_MODEL:qwen3.7-flash}
+    retry:
+      max-attempts: 3
+      backoff:
+        initial-interval: 500ms
+        multiplier: 2
+        max-interval: 2s
+    mcp:
+      client:
+        enabled: true
+        type: SYNC
+        request-timeout: 20s
+        toolcallback:
+          enabled: true
+        stdio:
+          connections:
+            repository-search:
+              command: ${REPOSITORY_AGENT_NODE_COMMAND:node}
+              args:
+                - "${REPOSITORY_AGENT_MCP_SERVER:${user.dir}/mcp/repository-search-server.mjs}"
+                - "${REPOSITORY_AGENT_REPOSITORY_ROOT:${user.dir}}"
+
+repository-agent:
+  repository:
+    root: ${REPOSITORY_AGENT_REPOSITORY_ROOT:${user.dir}}
+  overview:
+    cache-directory: ${REPOSITORY_AGENT_CACHE_DIRECTORY:${user.dir}/.repository-agent-cache}
