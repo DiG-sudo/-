@@ -18,6 +18,7 @@ import org.springframework.ai.tool.ToolCallback;
 import com.guodi.aikb.ai.agent.AgentResult;
 import com.guodi.aikb.ai.agent.runtime.AgentRuntime;
 import com.guodi.aikb.ai.memory.TurnContextManager;
+import com.guodi.aikb.ai.memory.ConversationPersistenceService;
 import com.guodi.aikb.ai.tool.catalog.ToolCatalogService;
 import com.guodi.aikb.workspace.service.RepositoryOverviewService;
 
@@ -27,10 +28,14 @@ class AgentServiceImplRepositoryOverviewTest {
     void injectsPersistedRepositoryOverviewIntoEveryTurnAndRecordsConversation() {
         AgentRuntime runtime = mock(AgentRuntime.class);
         TurnContextManager turnContextManager = mock(TurnContextManager.class);
+        ConversationPersistenceService conversationPersistenceService =
+                mock(ConversationPersistenceService.class);
         ToolCatalogService toolCatalogService = mock(ToolCatalogService.class);
         RepositoryOverviewService overviewService = mock(RepositoryOverviewService.class);
 
         when(turnContextManager.prepareContext(any())).thenReturn(List.of());
+        when(conversationPersistenceService.startTurn(1L, "first")).thenReturn(101L);
+        when(conversationPersistenceService.startTurn(1L, "second")).thenReturn(102L);
         when(toolCatalogService.getEnabledCallbacks()).thenReturn(new ToolCallback[0]);
         when(overviewService.getOverview()).thenReturn(
                 "repository_root: /repo\noverview_content:\n  - src/"
@@ -39,7 +44,11 @@ class AgentServiceImplRepositoryOverviewTest {
                 .thenReturn(new AgentResult("answer", "NOT_REQUESTED", null, List.of()));
 
         AgentServiceImpl service = new AgentServiceImpl(
-                runtime, turnContextManager, toolCatalogService, overviewService
+                runtime,
+                turnContextManager,
+                conversationPersistenceService,
+                toolCatalogService,
+                overviewService
         );
 
         service.chat("first", 1L, false);
@@ -48,8 +57,9 @@ class AgentServiceImplRepositoryOverviewTest {
         ArgumentCaptor<Prompt> prompts = ArgumentCaptor.forClass(Prompt.class);
         verify(runtime, times(2)).execute(prompts.capture(), any(), any(), any(), any(Boolean.class));
         verify(overviewService, times(2)).getOverview();
-        verify(turnContextManager).recordTurn(1L, "first", "answer");
-        verify(turnContextManager).recordTurn(1L, "second", "answer");
+        verify(conversationPersistenceService).startTurn(1L, "first");
+        verify(conversationPersistenceService).startTurn(1L, "second");
+        verify(conversationPersistenceService, times(2)).completeTurn(any(), any());
 
         for (Prompt prompt : prompts.getAllValues()) {
             List<Message> messages = prompt.getInstructions();

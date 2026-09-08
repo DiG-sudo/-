@@ -13,6 +13,4 @@ public interface TurnContextManager {
      * 返回已持久化摘要与当前消息之前、尚未摘要的会话历史。
      */
     List<Message> prepareContext(Long sessionId);
-
-    void recordTurn(Long sessionId, String userMessage, String assistantMessage);
 }

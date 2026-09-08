@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -18,13 +17,12 @@ import com.guodi.aikb.ai.agent.AgentService;
 import com.guodi.aikb.ai.agent.AgentResult;
 import com.guodi.aikb.ai.agent.runtime.AgentRuntime;
 import com.guodi.aikb.ai.memory.TurnContextManager;
+import com.guodi.aikb.ai.memory.ConversationPersistenceService;
 import com.guodi.aikb.ai.tool.catalog.ToolCatalogService;
 import com.guodi.aikb.workspace.service.RepositoryOverviewService;
 
 @Service
 public class AgentServiceImpl implements AgentService {
-
-    private static final AtomicLong MESSAGE_IDS = new AtomicLong();
 
     private static final String SYSTEM_PROMPT = """
             你是一个能够使用当前提供工具完成任务的智能助手。
@@ -122,16 +120,19 @@ public class AgentServiceImpl implements AgentService {
 
     private final AgentRuntime agentRuntime;
     private final TurnContextManager turnContextManager;
+    private final ConversationPersistenceService conversationPersistenceService;
     private final ToolCatalogService toolCatalogService;
     private final RepositoryOverviewService repositoryOverviewService;
 
     public AgentServiceImpl(
             AgentRuntime agentRuntime,
             TurnContextManager turnContextManager,
+            ConversationPersistenceService conversationPersistenceService,
             ToolCatalogService toolCatalogService,
             RepositoryOverviewService repositoryOverviewService) {
         this.agentRuntime = agentRuntime;
         this.turnContextManager = turnContextManager;
+        this.conversationPersistenceService = conversationPersistenceService;
         this.toolCatalogService = toolCatalogService;
         this.repositoryOverviewService = repositoryOverviewService;
     }
@@ -143,7 +144,9 @@ public class AgentServiceImpl implements AgentService {
             boolean verifiedMode) {
 
         validateRequest(question, sessionId);
-        long currentUserMessageId = MESSAGE_IDS.incrementAndGet();
+
+        List<Message> conversationContext = turnContextManager.prepareContext(sessionId);
+        long currentUserMessageId = conversationPersistenceService.startTurn(sessionId, question);
 
         ToolCallback[] toolCallbacks = toolCatalogService.getEnabledCallbacks();
 
@@ -157,8 +160,6 @@ public class AgentServiceImpl implements AgentService {
                         .toolContext(toolContext)
                         .internalToolExecutionEnabled(false)
                         .build();
-
-        List<Message> conversationContext = turnContextManager.prepareContext(sessionId);
 
         List<Message> messages =
                 new ArrayList<>();
@@ -222,7 +223,7 @@ public class AgentServiceImpl implements AgentService {
                 currentUserMessageId,
                 verifiedMode
         );
-        turnContextManager.recordTurn(sessionId, question, result.getAnswer());
+        conversationPersistenceService.completeTurn(sessionId, result);
         return result;
     }
 

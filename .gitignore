@@ -1,0 +1,33 @@
+# Maven build output
+target/
+
+# Repository Agent local cache
+.repository-agent-cache/
+
+# Local environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+
+# Temporary files
+*.tmp
+*.swp

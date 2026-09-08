@@ -4,12 +4,10 @@ import java.util.List;
 
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
-import org.springframework.stereotype.Component;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Component
 public class LoggingAgentTraceStore implements AgentTraceStore {
 
     @Override

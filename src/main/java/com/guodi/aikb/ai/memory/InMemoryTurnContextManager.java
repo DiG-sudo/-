@@ -9,9 +9,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.stereotype.Component;
 
-@Component
 public class InMemoryTurnContextManager implements TurnContextManager {
 
     private static final int MAX_MESSAGES_PER_SESSION = 20;
@@ -29,7 +27,6 @@ public class InMemoryTurnContextManager implements TurnContextManager {
         }
     }
 
-    @Override
     public void recordTurn(Long sessionId, String userMessage, String assistantMessage) {
         validateSessionId(sessionId);
         if (userMessage == null || userMessage.isBlank()
